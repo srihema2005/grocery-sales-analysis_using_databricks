@@ -1,0 +1,220 @@
+#int_sales_oil.sql
+
+WITH sales_with_oil AS (
+
+    SELECT
+        s.id,
+        s.sales_date,
+        s.store_nbr,
+        s.family,
+        s.sales,
+        s.onpromotion,
+        s.city,
+        s.state,
+        s.type,
+        s.cluster,
+        o.oil_price
+
+    FROM {{ ref('int_sales_enriched') }} s
+
+    LEFT JOIN {{ ref('stg_oil') }} o
+        ON s.sales_date = o.date
+),
+
+filled_oil AS (
+
+    SELECT
+        *,
+        LAST_VALUE(oil_price, TRUE) OVER (
+            ORDER BY sales_date
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS previous_oil_price,
+
+        FIRST_VALUE(oil_price, TRUE) OVER (
+            ORDER BY sales_date DESC
+            ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+        ) AS next_oil_price
+
+    FROM sales_with_oil
+)
+
+SELECT
+    id,
+    sales_date,
+    store_nbr,
+    family,
+    sales,
+    onpromotion,
+    city,
+    state,
+    type,
+    cluster,
+    COALESCE(previous_oil_price, next_oil_price) AS oil_price
+FROM filled_oil
+
+
+#int_sales.sql
+SELECT
+    t.transaction_date,
+    t.store_nbr,
+    s.city,
+    s.state,
+    s.type AS store_type,
+    s.cluster,
+    t.transactions
+FROM {{ ref('stg_transactions') }} t
+LEFT JOIN {{ ref('stg_stores') }} s
+    ON t.store_nbr = s.store_nbr
+
+#int_sales_complete
+
+WITH holiday_clean AS (
+
+    SELECT
+        date,
+
+        CONCAT_WS(
+            ' | ',
+            SORT_ARRAY(COLLECT_SET(TRIM(type)))
+        ) AS holiday_type,
+
+        CONCAT_WS(
+            ' | ',
+            SORT_ARRAY(COLLECT_SET(TRIM(locale)))
+        ) AS holiday_locale,
+
+        CONCAT_WS(
+            ' | ',
+            SORT_ARRAY(COLLECT_SET(TRIM(locale_name)))
+        ) AS holiday_locale_name,
+
+        CONCAT_WS(
+            ' | ',
+            SORT_ARRAY(COLLECT_SET(TRIM(description)))
+        ) AS holiday_description,
+
+        MAX(
+            CASE
+                WHEN transferred = TRUE THEN TRUE
+                ELSE FALSE
+            END
+        ) AS holiday_transferred
+
+    FROM {{ ref('stg_holidays_events') }}
+
+    GROUP BY date
+)
+
+SELECT
+    s.id,
+    s.sales_date,
+    s.store_nbr,
+    s.family,
+    s.sales,
+    s.onpromotion,
+    s.city,
+    s.state,
+    s.type,
+    s.cluster,
+    s.oil_price,
+
+    COALESCE(h.holiday_type, 'No Holiday') AS holiday_type,
+    COALESCE(h.holiday_locale, 'No Holiday') AS holiday_locale,
+    COALESCE(h.holiday_locale_name, 'No Holiday') AS holiday_locale_name,
+    COALESCE(h.holiday_description, 'No Holiday') AS holiday_description,
+    COALESCE(h.holiday_transferred, FALSE) AS holiday_transferred
+
+FROM {{ ref('int_sales_oil') }} s
+
+LEFT JOIN holiday_clean h
+    ON s.sales_date = h.date
+
+#WITH holiday_clean AS (
+
+    SELECT
+        date,
+
+        CONCAT_WS(
+            ' | ',
+            SORT_ARRAY(COLLECT_SET(TRIM(type)))
+        ) AS holiday_type,
+
+        CONCAT_WS(
+            ' | ',
+            SORT_ARRAY(COLLECT_SET(TRIM(locale)))
+        ) AS holiday_locale,
+
+        CONCAT_WS(
+            ' | ',
+            SORT_ARRAY(COLLECT_SET(TRIM(locale_name)))
+        ) AS holiday_locale_name,
+
+        CONCAT_WS(
+            ' | ',
+            SORT_ARRAY(COLLECT_SET(TRIM(description)))
+        ) AS holiday_description,
+
+        MAX(
+            CASE
+                WHEN transferred = TRUE THEN TRUE
+                ELSE FALSE
+            END
+        ) AS holiday_transferred
+
+    FROM {{ ref('stg_holidays_events') }}
+
+    GROUP BY date
+)
+
+SELECT
+    s.id,
+    s.sales_date,
+    s.store_nbr,
+    s.family,
+    s.sales,
+    s.onpromotion,
+    s.city,
+    s.state,
+    s.type,
+    s.cluster,
+    s.oil_price,
+
+    COALESCE(h.holiday_type, 'No Holiday') AS holiday_type,
+    COALESCE(h.holiday_locale, 'No Holiday') AS holiday_locale,
+    COALESCE(h.holiday_locale_name, 'No Holiday') AS holiday_locale_name,
+    COALESCE(h.holiday_description, 'No Holiday') AS holiday_description,
+    COALESCE(h.holiday_transferred, FALSE) AS holiday_transferred
+
+FROM {{ ref('int_sales_oil') }} s
+
+LEFT JOIN holiday_clean h
+    ON s.sales_date = h.date
+
+#int_sales_enriched
+SELECT
+    t.id,
+    t.sales_date,
+    t.store_nbr,
+    t.family,
+    t.sales,
+    t.onpromotion,
+    s.city,
+    s.state,
+    s.type,
+    s.cluster
+FROM {{ ref('int_train_sales') }} t
+INNER JOIN {{ ref('stg_stores') }} s
+    ON t.store_nbr = s.store_nbr
+
+
+#int_train_sales
+
+SELECT
+    t.id,
+    t.sales_date,
+    t.store_nbr,
+    t.family,
+    t.sales,
+    t.onpromotion
+FROM {{ ref('stg_train') }} t
+

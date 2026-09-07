@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: bronze
+    catalog: grocery_sales
+    schema: bronze
+
+    tables:
+      - name: holidays_events
+      - name: oil
+      - name: stores
+      - name: test
+      - name: train
+      - name: transactions
