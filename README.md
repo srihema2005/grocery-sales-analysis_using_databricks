@@ -221,7 +221,7 @@ Provides date-related attributes for analytical queries.
 
 The Gold layer follows a **Star Schema** design:
 
-![Grocery Sales Star Schema](design/Model.jpeg)
+![Grocery Sales Star Schema](Design/Model.jpeg)
 
 
 ### Fact Table
