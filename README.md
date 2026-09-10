@@ -36,7 +36,7 @@ The main objectives of this project are:
 The project follows a layered data architecture:
 
 
-![Grocery Sales Data Model Pipeline](design/High-level-Design.png)
+![Grocery Sales Data Model Pipeline](Design/High-level-Design.png)
 
 The repository also contains architecture and data-model diagrams under the `design/` directory.
 
