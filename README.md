@@ -281,6 +281,22 @@ The project configuration maps:
 and materializes these models as tables.
 
 ---
+## 📊 Dashboards
+
+### Dashboard 1
+![Dashboard 1](DashBoards/Dashboard1.png)
+
+### Dashboard 2
+![Dashboard 2](DashBoards/Dashboard2.png)
+
+### Dashboard 3
+![Dashboard 3](DashBoards/Dashboard3.png)
+
+### Dashboard 4
+![Dashboard 4](DashBoards/Dashboard4.png)
+
+### Dashboard 5
+![Dashboard 5](DashBoards/Dashboard5.png)
 
 # 🧩 Project Structure
 
